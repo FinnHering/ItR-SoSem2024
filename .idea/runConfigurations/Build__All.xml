@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Build: All" type="CompoundRunConfigurationType">
+    <toRun name="Build ItR-Tutorial" type="ShConfigurationType" />
+    <toRun name="Build driving swarm infra" type="ShConfigurationType" />
+    <method v="2" />
+  </configuration>
+</component>

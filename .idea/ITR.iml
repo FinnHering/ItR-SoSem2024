@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="PYTHON_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/driving_swarm_infrastructure2/src/ccr" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/driving_swarm_infrastructure2/src/check_robots" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/driving_swarm_infrastructure2/src/driving_swarm_behaviour" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/driving_swarm_infrastructure2/src/driving_swarm_bringup" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/driving_swarm_infrastructure2/src/driving_swarm_core" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/driving_swarm_infrastructure2/src/driving_swarm_messages" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/driving_swarm_infrastructure2/src/driving_swarm_nav_graph" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/driving_swarm_infrastructure2/src/driving_swarm_services" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/driving_swarm_infrastructure2/src/driving_swarm_utils" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/driving_swarm_infrastructure2/src/experiment_measurement" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/driving_swarm_infrastructure2/src/experiment_supervisor" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/driving_swarm_infrastructure2/src/fake_range" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/driving_swarm_infrastructure2/src/goal_provider" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/driving_swarm_infrastructure2/src/map2gazebo" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/driving_swarm_infrastructure2/src/map_creation_pkg" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/driving_swarm_infrastructure2/src/system_status" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/driving_swarm_infrastructure2/src/tf_exchange" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/driving_swarm_infrastructure2/src/trajectory_follower" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/driving_swarm_infrastructure2/src/trajectory_generator" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/introduction_to_robotics_tutorial2/src/planning" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/introduction_to_robotics_tutorial2/src/reactive_behaviour" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/introduction_to_robotics_tutorial2/src/state_estimation" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/introduction_to_robotics_tutorial2/src/watchdog" isTestSource="false" />
+    </content>
+    <orderEntry type="jdk" jdkName="Python 3.10" jdkType="Python SDK" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+  <component name="PyDocumentationSettings">
+    <option name="format" value="PLAIN" />
+    <option name="myDocStringFormat" value="Plain" />
+  </component>
+  <component name="TestRunnerService">
+    <option name="PROJECT_TEST_RUNNER" value="py.test" />
+  </component>
+</module>

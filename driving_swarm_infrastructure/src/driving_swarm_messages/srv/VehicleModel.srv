@@ -1,0 +1,5 @@
+geometry_msgs/Pose2D[] waypoints
+float64[] speeds
+---
+geometry_msgs/Pose2D[] trajectory
+float64 sample_rate
