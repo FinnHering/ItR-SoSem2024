@@ -1,6 +1,7 @@
 import math
 import random
 import statistics
+from enum import Enum
 
 import numpy as np
 import rclpy
@@ -9,22 +10,29 @@ from geometry_msgs.msg import Twist
 from sensor_msgs.msg import LaserScan
 
 
+class TurnDirection(Enum):
+    LEFT = -1
+    RIGHT = 1
+
+
+class CollisionType(Enum):
+    X = 1
+    Y = 2
+
+
 class VelocityController(DrivingSwarmNode):
-    # Distances between ]0..1[
+    # Distances between [0..1]
     front_distance: float = 1
     right_distance: float = 1
     back_distance: float = 1
     left_distance: float = 1
 
     # Distance at which the robot does collision avoidance
-    MIN_DISTANCE = 0.13
+    MIN_DISTANCE_X = 0.13
 
     # Maximum speed
     MAX_SPEED = 0.1
 
-    TURN_DEGREES = 7
-
-    MAX_TURN_DEGREES = 120
 
     def __init__(self, name: str) -> None:
         super().__init__(name)
@@ -40,13 +48,8 @@ class VelocityController(DrivingSwarmNode):
 
     def laser_cb(self, msg: LaserScan):
         # Get distances of robot
-        self.front_distance = min(
-            [self._get_distance(msg, x + 0) for x in np.arange(-10, 10, math.degrees(msg.angle_increment))])
-        self.right_distance = min(
-            [self._get_distance(msg, x + 270) for x in np.arange(-80, 80, math.degrees(msg.angle_increment))])
-        # self.back_distance = self._get_distance(msg, 180)
-        self.left_distance = min(
-            [self._get_distance(msg, x + 90) for x in np.arange(-80, 80, math.degrees(msg.angle_increment))])
+        self.front_distance = (
+            min([self._get_distance(msg, x + 0) for x in np.arange(-10, 10, math.degrees(msg.angle_increment))]))
 
         # self.get_logger().info(
         #     f"Distances: front: {self.front_distance}, right: {self.right_distance}, back: {self.back_distance}, "
@@ -55,42 +58,18 @@ class VelocityController(DrivingSwarmNode):
     def _get_next_move(self):
         res = Twist()
         res.linear.x = self.MAX_SPEED
-        # no (frontal) collision
-        if self.front_distance > self.MIN_DISTANCE and self.right_distance < self.MIN_DISTANCE and self.left_distance < self.MIN_DISTANCE:
-            pass
-            #self.get_logger().info("No collision!")
-        # Frontal/right collision
-        elif self.front_distance < self.MIN_DISTANCE and self.right_distance <= self.left_distance:
-            #self.get_logger().info("Frontal/right  collision!")
-            res.angular.z = math.radians(min(self.TURN_DEGREES / (
-                    min([self.front_distance, self.right_distance]) + 0.001) / self.MIN_DISTANCE, self.MAX_TURN_DEGREES))
 
-        # Frontal/left collision
-        elif self.front_distance < self.MIN_DISTANCE and self.right_distance > self.left_distance:
-            #self.get_logger().info("frontal/left collision!")
-            res.angular.z = math.radians(
-                max(-self.TURN_DEGREES / (
-                    min([self.front_distance, self.left_distance]) + 0.001) / self.MIN_DISTANCE, -self.MAX_TURN_DEGREES))
+        self.get_logger().info(
+            f"front={self.front_distance}, back={self.back_distance}, right={self.right_distance}, left={self.left_distance}")
 
-        # right collision
-        elif self.right_distance < self.MIN_DISTANCE and self.front_distance > self.MIN_DISTANCE:
-            #self.get_logger().info("right collision!")
-            res.angular.z = math.radians(min(self.TURN_DEGREES / (self.right_distance / self.MIN_DISTANCE + 0.001), self.MAX_TURN_DEGREES))
+        if self.front_distance < self.MIN_DISTANCE_X:
+            res.angular.z = math.radians(random.uniform(-180.0, 180.0))
+            res.linear.x = 0.0
 
-        # left collision
-        elif self.left_distance < self.MIN_DISTANCE and self.front_distance > self.MIN_DISTANCE:
-            self.get_logger().info("left collision!")
-            res.angular.z = math.radians(max(-self.TURN_DEGREES / (self.left_distance / self.MIN_DISTANCE + 0.001), -self.MAX_TURN_DEGREES))
-
-        # Probably stuck in a corner. Just do a 180
-        else:
-            #self.get_logger().info("Stuck!")
-            res.angular.z = math.radians(self.TURN_DEGREES)
         return res
 
     def _get_distance(self, msg: LaserScan, angle: float) -> float:
         """
-
         @param msg: LaserScan to use as base for distance calculations
         @param angle: angle of sensor to get distance from (deg)
         @return: distance between [msg.range_min..msg.range_max]
@@ -113,7 +92,7 @@ class VelocityController(DrivingSwarmNode):
 
         @param angle_start: start angle of sensor (rad)
         @param angle_end: end angle of sensor (rad)
-        @param angle_increment: increment of angles for measurement
+        @param angle_increment: increment of angles for measurement (rad)
         @param angle: angle to get range idx for (deg)
 
         @return range index to get distance for
@@ -127,10 +106,7 @@ class VelocityController(DrivingSwarmNode):
         # normalize angle to 0-359
         angle = angle % 360
 
-        # do clipping in case angle is out of range
-        angle = min(max(angle, angle_start), angle_end)
-
-        return math.floor((angle - angle_start) / angle_increment)
+        return math.floor(angle / angle_increment)
 
 
 def main():
