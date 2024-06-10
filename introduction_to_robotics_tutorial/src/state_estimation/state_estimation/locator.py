@@ -1,10 +1,14 @@
+from collections import deque
 from dataclasses import dataclass
+from time import time
+from typing import Deque, Optional
 
 import rclpy
 import numpy as np
 import scipy.spatial
 import sympy
 from rclpy.node import Node
+from rclpy.time import Time
 from scipy.optimize import least_squares
 from sympy import Circle
 
@@ -24,7 +28,7 @@ class LocatorNode(Node):
 
     def __init__(self):
         super().__init__('locator_node')
-        self.anchor_ranges: list[Range] = []
+        self.anchor_ranges: Deque[(Range, float)] = deque(maxlen=5)
         self.create_subscription(Range, 'range', self.range_cb, 10)
         self.position_pub = self.create_publisher(PointStamped, 'position', 10)
         self.initialized = False
@@ -33,8 +37,7 @@ class LocatorNode(Node):
 
     def range_cb(self, msg: Range):
         self.get_logger().info(str(msg))
-        self.anchor_ranges.append(msg)
-        self.anchor_ranges = self.anchor_ranges[-10:]
+        self.anchor_ranges.append((msg, time()))
         if not self.initialized:
             self.initialized = True
             self.get_logger().info('first range received')
@@ -43,23 +46,32 @@ class LocatorNode(Node):
         if not self.initialized:
             return
         msg = PointStamped()
-        msg.point.x, msg.point.y, msg.point.z = self.calculate_position()
+        res = self.calculate_position()
+        if res is None:
+            return
+
+        pos, old_timestamp = res
+        msg.point.x, msg.point.y, msg.point.z = float(pos.x), float(pos.y), float(pos.z)
         msg.header.frame_id = 'world'
+        msg.header.stamp = Time(seconds=round(old_timestamp)).to_msg()
         self.position_pub.publish(msg)
 
-    def calculate_position(self):
-        unique_ranges = self.get_recent_unique_ranges(3)
+    def calculate_position(self) -> Optional[tuple[sympy.Point3D, float]]:
+        unique_ranges, oldest_timestamp = self.get_recent_unique_ranges(4)
 
-        if len(unique_ranges) < 3:
-            return 0.0, 0.0, 0.0
+        if len(unique_ranges) < 4:
+            return None
 
         p: sympy.Point2D = self.triangulate(unique_ranges)
 
         self.get_logger().info(f"X: {float(p.x)}, Y: {float(p.y)}")
 
-        return float(p.x), float(p.y), 0.0
+        # reset ranges
+        self.anchor_ranges = []
 
-    def triangulate(self, ranges: (Range, Range, Range)) -> sympy.Point2D:
+        return sympy.Point3D(float(p.x), float(p.y), 0.0), oldest_timestamp
+
+    def triangulate(self, ranges: list[Range]) -> sympy.Point2D:
         """
         Given 3 unique anchored ranges calculates the position.
         If the ranges are not unique the result will most likely be wrong!
@@ -70,9 +82,9 @@ class LocatorNode(Node):
 
         circles = list(map(self.range_to_circle, ranges))
 
-        result = least_squares(self.triangulate_equation, [0, 0, 0, 0], args=[circles])
+        result = least_squares(self.triangulate_equation, [0, 0, 0], args=[circles], method='lm')
 
-        x, y, z, r = result.x
+        x, y, z = result.x
 
         return sympy.Point(x, y)
 
@@ -81,7 +93,7 @@ class LocatorNode(Node):
         return Sphere(x=r.anchor.x, y=r.anchor.y, z=r.anchor.z, r=r.range)
 
     @staticmethod
-    def triangulate_equation(guess: tuple[float, float, float, float], anchors: list[Sphere]) -> np.array:
+    def triangulate_equation(guess: tuple[float, float, float], anchors: list[Sphere]) -> np.array:
         """
 
         @param guess: (x, y, z, r) of a guessed circle
@@ -89,15 +101,15 @@ class LocatorNode(Node):
         @return: for each circle in anchors the result of the circle inner tangent function
         """
 
-        x, y, z, r = guess
+        x, y, z = guess
 
         res = []
         for c in anchors:
-            res.append(((x - c.x)**2 + (y - c.y)**2 + (z - c.z)**2 - (r - c.r)**2))
+            res.append((((x - c.x) ** 2 + (y - c.y) ** 2 + (z - c.z) ** 2) - c.r ** 2))
 
         return np.array(res, dtype=float)
 
-    def get_recent_unique_ranges(self, count: int) -> list[Range]:
+    def get_recent_unique_ranges(self, count: int) -> tuple[list[Range], float]:
         """
         Return recent ranges which have a unique anchor point.
 
@@ -109,9 +121,10 @@ class LocatorNode(Node):
             raise ValueError("Count must be >= 1")
 
         use_ranges = []
+        min_timestamp = None
         anchors: set[sympy.Point] = set()
 
-        for r in reversed(self.anchor_ranges):
+        for r, timestamp in reversed(list(self.anchor_ranges)):
 
             # filter out duplicate anchors
             if sympy.Point(r.anchor.x, r.anchor.y) in anchors:
@@ -120,10 +133,15 @@ class LocatorNode(Node):
             anchors.add(sympy.Point(r.anchor.x, r.anchor.y))
             use_ranges.append(r)
 
+            if min_timestamp is None or timestamp < min_timestamp:
+                min_timestamp = timestamp
+
             if len(anchors) >= count:
                 break
 
-        return use_ranges
+        self.anchor_ranges.clear()
+
+        return use_ranges, min_timestamp
 
 
 def main(args=None):
